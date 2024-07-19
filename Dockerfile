@@ -212,6 +212,7 @@ RUN apk --update --no-cache add \
     php83-zlib \
     python3 \
     py3-pip \
+    py3-virtualenv \
     p7zip \
     s6-overlay \
     shadow \
@@ -222,6 +223,10 @@ RUN apk --update --no-cache add \
     util-linux \
     zip \
     zlib \
+  && python3 -m venv /opt/venv \
+  && . /opt/venv/bin/activate \
+  && pip install --upgrade pip \
+  && deactivate \
   && addgroup -g ${PGID} rtorrent \
   && adduser -D -H -u ${PUID} -G rtorrent -s /bin/sh rtorrent \
   && rm -rf /tmp/* /var/cache/apk/*
