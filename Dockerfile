@@ -1,11 +1,11 @@
-ARG ALPINE_VERSION=edge
+ARG ALPINE_VERSION=latest
 ARG LIBSIG_VERSION=3.0.7
-ARG CARES_VERSION=1.34.1
-ARG CURL_VERSION=8.10.1
+ARG CARES_VERSION=1.34.3
+ARG CURL_VERSION=8.11.0
 ARG GEOIP2_PHPEXT_VERSION=1.3.1
-ARG XMLRPC_VERSION=01.60.00
-ARG LIBTORRENT_VERSION=0.13.8
-ARG RTORRENT_VERSION=0.9.8
+ARG XMLRPC_VERSION=1.64.00
+ARG LIBTORRENT_VERSION=0.14.0
+ARG RTORRENT_VERSION=0.10.0
 
 FROM alpine:${ALPINE_VERSION} AS compile
 
@@ -14,6 +14,7 @@ ENV DIST_PATH="/dist"
 RUN apk --update --no-cache add mm-common --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/
 RUN apk --update --no-cache add \
     autoconf \
+    autoconf-archive \
     automake \
     binutils \
     brotli-dev \
@@ -99,7 +100,7 @@ RUN cp -f /usr/lib/php83/modules/geoip.so ${DIST_PATH}/usr/lib/php83/modules/
 ARG LIBTORRENT_VERSION
 WORKDIR /tmp/libtorrent
 RUN git clone -q "https://github.com/rakshasa/libtorrent" . && git reset --hard v${LIBTORRENT_VERSION} && rm -rf .git
-RUN ./autogen.sh
+RUN libtoolize --force && aclocal && autoheader && automake --add-missing && autoconf
 RUN ./configure \
   --with-posix-fallocate \
   --enable-aligned \
@@ -112,7 +113,7 @@ RUN make DESTDIR=${DIST_PATH} install -j $(nproc)
 ARG RTORRENT_VERSION
 WORKDIR /tmp/rtorrent
 RUN git clone -q "https://github.com/rakshasa/rtorrent" . && git reset --hard v${RTORRENT_VERSION} && rm -rf .git
-RUN ./autogen.sh
+RUN libtoolize --force && aclocal && autoheader && automake --add-missing && autoconf
 RUN ./configure \
   --with-xmlrpc-c \
   --with-ncurses
@@ -140,18 +141,7 @@ WORKDIR /dist/rutorrent-ratio
 RUN git clone -q "https://github.com/Gyran/rutorrent-ratiocolor" . && rm -rf .git
 
 WORKDIR /dist/rutorrent-theme-quick
-RUN git clone -q "https://github.com/TrimmingFool/club-QuickBox" . && rm -rf .git
-
-#WORKDIR /dist/rutorrent-theme-rtmodern-remix
-#RUN git clone -q "https://github.com/Teal-c/rtModern-Remix" . && rm -rf .git \
-#    && cp -ar /dist/rutorrent-theme-rtmodern-remix /dist/rutorrent-theme-rtmodern-remix-plex \
-#    && cat themes/plex.css > custom.css \
-#    && cp -ar /dist/rutorrent-theme-rtmodern-remix /dist/rutorrent-theme-rtmodern-remix-jellyfin \
-#    && cat themes/jellyfin.css > custom.css \
-#    && cp -ar /dist/rutorrent-theme-rtmodern-remix /dist/rutorrent-theme-rtmodern-remix-jellyfin-bg \
-#    && cat themes/jellyfin-bg.css > custom.css \
-#    && cp -ar /dist/rutorrent-theme-rtmodern-remix /dist/rutorrent-theme-rtmodern-remix-lightpink \
-#    && cat themes/light-pink.css > custom.css
+RUN git clone -q "https://github.com/QuickBox/club-QuickBox" . && rm -rf .git
 
 WORKDIR /dist/mmdb
 RUN curl -SsOL "https://github.com/crazy-max/geoip-updater/raw/mmdb/GeoLite2-City.mmdb"
@@ -161,8 +151,6 @@ ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION} as builder
 
 ENV PYTHONPATH="$PYTHONPATH:/var/www/rutorrent" \
-  S6_BEHAVIOUR_IF_STAGE2_FAILS="2" \
-  S6_KILL_GRACETIME="5000" \
   TZ="UTC" \
   PUID="1000" \
   PGID="1000"
@@ -250,11 +238,6 @@ COPY --from=download --chown=nobody:nogroup /dist/rutorrent-geoip2 /var/www/ruto
 COPY --from=download --chown=nobody:nogroup /dist/rutorrent-filemanager /var/www/rutorrent/plugins/filemanager
 COPY --from=download --chown=nobody:nogroup /dist/rutorrent-ratio /var/www/rutorrent/plugins/ratiocolor
 COPY --from=download --chown=nobody:nogroup /dist/rutorrent-theme-quick /var/www/rutorrent/plugins/theme/themes/QuickBox
-#COPY --from=download --chown=nobody:nogroup /dist/rutorrent-theme-rtmodern-remix /var/www/rutorrent/plugins/theme/themes/Remix
-#COPY --from=download --chown=nobody:nogroup /dist/rutorrent-theme-rtmodern-remix-plex /var/www/rutorrent/plugins/theme/themes/Plex
-#COPY --from=download --chown=nobody:nogroup /dist/rutorrent-theme-rtmodern-remix-jellyfin /var/www/rutorrent/plugins/theme/themes/Jellyfin
-#COPY --from=download --chown=nobody:nogroup /dist/rutorrent-theme-rtmodern-remix-jellyfin-bg /var/www/rutorrent/plugins/theme/themes/Jellyfin-bg
-#COPY --from=download --chown=nobody:nogroup /dist/rutorrent-theme-rtmodern-remix-lightpink /var/www/rutorrent/plugins/theme/themes/LightPink
 
 VOLUME [ "/config", "/data", "/passwd" ]
 

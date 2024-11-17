@@ -23,7 +23,7 @@ echo -e "\n${bold}rTorrent/ruTorrent Configuration${norm}\n"
 CONFIG_PATH=${CONFIG_PATH:-/config}
 TOPDIR_PATH=${TOPDIR_PATH:-/data}
 DOWNLOAD_PATH=${DOWNLOAD_PATH:-${TOPDIR_PATH}/downloads}
-WAN_IP=${WAN_IP:-$(dig +short myip.opendns.com @resolver1.opendns.com)}
+WAN_IP=${WAN_IP:-$(dig -4 +short myip.opendns.com @resolver1.opendns.com)}
 TZ=${TZ:-UTC}
 MEMORY_LIMIT=${MEMORY_LIMIT:-512M}
 UPLOAD_MAX_SIZE=${UPLOAD_MAX_SIZE:-16M}
@@ -524,8 +524,8 @@ mkdir -p /etc/services.d/rtorrent
 cat > /etc/services.d/rtorrent/run <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
-/usr/bin/export HOME ${CONFIG_PATH}/rtorrent
-/usr/bin/export PWD ${CONFIG_PATH}/rtorrent
+/bin/export HOME ${CONFIG_PATH}/rtorrent
+/bin/export PWD ${CONFIG_PATH}/rtorrent
 s6-setuidgid ${PUID}:${PGID}
 EOL
 if [ -z "${WAN_IP}" ]; then
