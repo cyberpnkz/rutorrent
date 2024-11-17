@@ -6,12 +6,13 @@ ARG GEOIP2_PHPEXT_VERSION=1.3.1
 ARG XMLRPC_VERSION=1.64.00
 ARG LIBTORRENT_VERSION=0.14.0
 ARG RTORRENT_VERSION=0.10.0
+ARG MM_COMMON_VERSION=1.0.6
+ARG RUTORRENT_REVISION=34946cf050bd31be8729fd2a4f34548c18da4334
 
 FROM alpine:${ALPINE_VERSION} AS compile
 
 ENV DIST_PATH="/dist"
 
-RUN apk --update --no-cache add mm-common --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/
 RUN apk --update --no-cache add \
     autoconf \
     autoconf-archive \
@@ -43,11 +44,20 @@ RUN apk --update --no-cache add \
     xz \
     zlib-dev
 
+ARG MM_COMMON_VERSION
+WORKDIR /tmp/common
+RUN curl -sSL "http://ftp.gnome.org/pub/GNOME/sources/mm-common/1.0/mm-common-${MM_COMMON_VERSION}.tar.xz" | tar -xJ --strip 1
+RUN ./autogen.sh --prefix=/usr/local 
+RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing" LDFLAGS="-Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
+RUN make install -j $(nproc)
+RUN make DESTDIR=${DIST_PATH} install -j $(nproc)
+RUN cp -r /usr/local/share/aclocal/* /usr/share/aclocal/
+
 ARG LIBSIG_VERSION
 WORKDIR /tmp/libsig
 RUN curl -sSL "http://ftp.gnome.org/pub/GNOME/sources/libsigc++/3.0/libsigc++-${LIBSIG_VERSION}.tar.xz" | tar -xJ --strip 1
 RUN ./autogen.sh --prefix=/usr/local
-RUN make -j $(nproc)
+RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing" LDFLAGS="-Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
 RUN make install -j $(nproc)
 RUN make DESTDIR=${DIST_PATH} install -j $(nproc)
 
@@ -55,7 +65,7 @@ ARG CARES_VERSION
 WORKDIR /tmp/cares
 RUN curl -sSL "https://github.com/c-ares/c-ares/releases/download/v${CARES_VERSION}/c-ares-${CARES_VERSION}.tar.gz" | tar -xz --strip 1
 RUN ./configure
-RUN make -j $(nproc) CFLAGS="-O3 -flto"
+RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing" LDFLAGS="-Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
 RUN make install -j $(nproc)
 RUN make DESTDIR=${DIST_PATH} install -j $(nproc)
 
@@ -69,7 +79,7 @@ RUN ./configure \
   --with-brotli \
   --with-ssl \
   --with-zlib
-RUN make -j $(nproc) CFLAGS="-O3 -flto -pipe"
+RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing" LDFLAGS="-Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
 RUN make install -j $(nproc)
 RUN make DESTDIR=${DIST_PATH} install -j $(nproc)
 
@@ -79,7 +89,7 @@ RUN git clone -q "https://github.com/rlerdorf/geoip" . && git reset --hard ${GEO
 RUN set -e
 RUN phpize83
 RUN ./configure --with-php-config=/usr/bin/php-config83
-RUN make -j $(nproc)
+RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing" LDFLAGS="-Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
 RUN make install -j $(nproc)
 RUN make DESTDIR=${DIST_PATH} install -j $(nproc)
 
@@ -106,7 +116,7 @@ RUN ./configure \
   --enable-aligned \
   --disable-instrumentation \
   --enable-udns
-RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing"
+RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing" LDFLAGS="-Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
 RUN make install -j $(nproc)
 RUN make DESTDIR=${DIST_PATH} install -j $(nproc)
 
@@ -117,7 +127,7 @@ RUN libtoolize --force && aclocal && autoheader && automake --add-missing && aut
 RUN ./configure \
   --with-xmlrpc-c \
   --with-ncurses
-RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing"
+RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing" LDFLAGS="-Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
 RUN make install -j $(nproc)
 RUN make DESTDIR=${DIST_PATH} install -j $(nproc)
 

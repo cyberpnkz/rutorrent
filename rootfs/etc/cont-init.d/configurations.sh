@@ -347,6 +347,7 @@ cat > /var/www/rutorrent/plugins/create/conf.php <<EOL
 \$useExternal = 'mktorrent';
 \$pathToCreatetorrent = '/usr/bin/mktorrent';
 \$recentTrackersMaxCount = 15;
+\$useInternalHybrid = true;
 EOL
 chown nobody:nogroup "/var/www/rutorrent/plugins/create/conf.php"
 
