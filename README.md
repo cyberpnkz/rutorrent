@@ -18,15 +18,15 @@ ___
 * Run as non-root user
 * Multi-platform image
 * [NGINX](https://nginx.org/download) with [PHP 8.3](https://www.php.net/releases/8.3/en.php)
-* [rTorrent](https://github.com/rakshasa/rtorrent) / [libTorrent](https://github.com/rakshasa/libtorrent) release compiled from source
-* Name resolving with [c-ares](https://github.com/rakshasa/rtorrent/wiki/Performance-Tuning#rtrorrent-with-c-ares) for asynchronous DNS requests (including name resolves)
-* [ruTorrent](https://github.com/Novik/ruTorrent) release (`v5.1.4`)
+* [libTorrent](https://github.com/rakshasa/libtorrent) (`0.14.0`) / [rTorrent](https://github.com/rakshasa/rtorrent) (`0.10.0`) compiled from source
+* [ruTorrent](https://github.com/Novik/ruTorrent) release (`v5.1-beta5`)
+* [c-ares](https://github.com/rakshasa/rtorrent/wiki/Performance-Tuning#rtrorrent-with-c-ares) for asynchronous DNS requests
+* [mktorrent](https://github.com/Rudde/mktorrent) installed for ruTorrent create plugin
+* [Radarr](https://radarr.video) / [Sonarr](https://sonarr.tv) hardlinks compliance
 * ruTorrent [GeoIP2](https://github.com/Micdu70/geoip2-rutorrent) plugin
 * ruTorrent [Filemanager](https://github.com/nelu/rutorrent-filemanager) plugin
 * ruTorrent [Ratiocolors](https://github.com/Gyran/rutorrent-ratiocolor) plugin
 * ruTorrent [QuickBox](https://github.com/TrimmingFool/club-QuickBox) theme
-* [Radarr](https://radarr.video)/[Sonarr](https://sonarr.tv) hardlinks compliance
-* [mktorrent](https://github.com/Rudde/mktorrent) installed for ruTorrent create plugin
 * `WAN IP` address automatically resolved for reporting to the tracker
 * `XMLRPC` through nginx over SCGI socket (basic auth optional)
 * `WebDAV` on completed downloads (basic auth optional)
