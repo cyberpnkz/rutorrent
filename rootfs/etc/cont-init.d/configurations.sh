@@ -44,6 +44,10 @@ RUTORRENT_PORT=${RUTORRENT_PORT:-8080}
 RUTORRENT_HEALTH_PORT=$((RUTORRENT_PORT + 1))
 WEBDAV_PORT=${WEBDAV_PORT:-9000}
 WEBDAV_HEALTH_PORT=$((WEBDAV_PORT + 1))
+GEOIP2_CONF=${GEOIP2_CONF:-/etc/geoip2.conf}
+GEOIP2_PATH=${GEOIP2_PATH:-${CONFIG_PATH}/geoip}
+MM_ACCOUNT=${MM_ACCOUNT:-}
+MM_LICENSE=${MM_LICENSE:-}
 
 # rTorrent
 RT_LOG_LEVEL=${RT_LOG_LEVEL:-info}
@@ -138,6 +142,17 @@ sed -e "s!@WEBDAV_AUTHBASIC_STRING@!$WEBDAV_AUTHBASIC_STRING!g" \
   -e "s!@WEBDAV_HEALTH_PORT@!$WEBDAV_HEALTH_PORT!g" \
   -e "s!@DOWNLOAD_PATH@!$DOWNLOAD_PATH!g" \
   -i /etc/nginx/conf.d/webdav.conf
+
+if [[ ! -z "$MM_ACCOUNT" ]] && [[ ! -z "$MM_LICENSE" ]]; then
+  echo -e "  ${norm}[${green}+${norm}] Settings GeoIP2 with ${green}${MM_ACCOUNT}${norm}"
+  mkdir -p ${GEOIP2_PATH}
+  cat > ${GEOIP2_CONF} <<EOL
+AccountID ${MM_ACCOUNT}
+LicenseKey ${MM_LICENSE}
+EditionIDs GeoLite2-ASN GeoLite2-City GeoLite2-Country
+EOL
+  (sleep 5 && geoipupdate -v -f ${GEOIP2_CONF} -d ${GEOIP2_PATH}) &
+fi
 
 # Healthcheck
 echo "  ${norm}[${green}+${norm}] Setting healthcheck script..."
@@ -525,10 +540,22 @@ mkdir -p /etc/services.d/rtorrent
 cat > /etc/services.d/rtorrent/run <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
-/bin/export HOME ${CONFIG_PATH}/rtorrent
-/bin/export PWD ${CONFIG_PATH}/rtorrent
 s6-setuidgid ${PUID}:${PGID}
+export HOME ${CONFIG_PATH}/rtorrent
+export PWD ${CONFIG_PATH}/rtorrent
 EOL
+if [[ ! -z "$MM_ACCOUNT" ]] && [[ ! -z "$MM_LICENSE" ]]; then
+  cat >> /etc/crontabs/root <<EOL
+* * * * * geoipupdate -v -f ${GEOIP2_CONF} -d ${GEOIP2_PATH} && chown rtorrent:rtorrent ${GEOIP2_PATH} -R >/proc/1/fd/1 2>/proc/1/fd/2
+EOL
+  mkdir -p /etc/services.d/cron
+  cat > /etc/services.d/cron/run <<EOL
+#!/usr/bin/execlineb -P
+with-contenv
+crond -f -l 2
+EOL
+  chmod +x /etc/services.d/cron/run
+fi
 if [ -z "${WAN_IP}" ]; then
   echo "rtorrent -D -o import=/etc/rtorrent/.rtlocal.rc" >> /etc/services.d/rtorrent/run
 else

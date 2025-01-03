@@ -1,13 +1,13 @@
 ARG ALPINE_VERSION=latest
-ARG LIBSIG_VERSION=3.0.7
-ARG CARES_VERSION=1.34.3
-ARG CURL_VERSION=8.11.0
+ARG LIBSIG_VERSION=3.6.0
+ARG CARES_VERSION=1.34.4
+ARG CURL_VERSION=8.11.1
 ARG GEOIP2_PHPEXT_VERSION=1.3.1
 ARG XMLRPC_VERSION=1.64.00
 ARG LIBTORRENT_VERSION=0.14.0
 ARG RTORRENT_VERSION=0.10.0
 ARG MM_COMMON_VERSION=1.0.6
-ARG RUTORRENT_REVISION=cbd6703623f464a2c1f00d3d0110d125913ac6a9
+ARG RUTORRENT_REVISION=25679a45a1e2ca9f7a9e01cab5cc554b8eaa7230
 
 FROM alpine:${ALPINE_VERSION} AS compile
 
@@ -55,7 +55,7 @@ RUN cp -r /usr/local/share/aclocal/* /usr/share/aclocal/
 
 ARG LIBSIG_VERSION
 WORKDIR /tmp/libsig
-RUN curl -sSL "http://ftp.gnome.org/pub/GNOME/sources/libsigc++/3.0/libsigc++-${LIBSIG_VERSION}.tar.xz" | tar -xJ --strip 1
+RUN curl -sSL "http://ftp.gnome.org/pub/GNOME/sources/libsigc++/3.6/libsigc++-${LIBSIG_VERSION}.tar.xz" | tar -xJ --strip 1
 RUN ./autogen.sh --prefix=/usr/local
 RUN make -j $(nproc) CXXFLAGS="-w -O3 -flto -Werror=odr -Werror=lto-type-mismatch -Werror=strict-aliasing" LDFLAGS="-Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
 RUN make install -j $(nproc)
@@ -153,14 +153,27 @@ RUN git clone -q "https://github.com/Gyran/rutorrent-ratiocolor" . && rm -rf .gi
 WORKDIR /dist/rutorrent-theme-quick
 RUN git clone -q "https://github.com/QuickBox/club-QuickBox" . && rm -rf .git
 
+FROM golang:alpine AS geoip2
+
+ARG MM_ACCOUNT
+ARG MM_LICENSE
 WORKDIR /dist/mmdb
-RUN curl -SsOL "https://github.com/crazy-max/geoip-updater/raw/mmdb/GeoLite2-City.mmdb"
-RUN curl -SsOL "https://github.com/crazy-max/geoip-updater/raw/mmdb/GeoLite2-Country.mmdb"
+RUN apk --update --no-cache add git
+ENV GOPATH=/opt/geoipupdate GOMAXPROCS=1
+RUN VERSION=$(git ls-remote --tags "https://github.com/maxmind/geoipupdate"| \
+    awk '{print $2}' | sed 's/refs\/tags\///;s/\..*$//' | sort -uV | tail -1) \
+    && go install github.com/maxmind/geoipupdate/$VERSION/cmd/geoipupdate@latest
+RUN cat > /etc/geoip2.conf <<EOL
+AccountID ${MM_ACCOUNT}
+LicenseKey ${MM_LICENSE}
+EditionIDs GeoLite2-ASN GeoLite2-City GeoLite2-Country
+EOL
+RUN /opt/geoipupdate/bin/geoipupdate -v -f /etc/geoip2.conf -d ./
 
 ARG ALPINE_VERSION
-FROM alpine:${ALPINE_VERSION} as builder
+FROM alpine:${ALPINE_VERSION} AS builder
 
-ENV PYTHONPATH="$PYTHONPATH:/var/www/rutorrent" \
+ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
   TZ="UTC" \
   PUID="1000" \
   PGID="1000"
@@ -175,7 +188,6 @@ RUN apk --update --no-cache add \
     ca-certificates \
     coreutils \
     cppunit-dev \
-    dhclient \
     ffmpeg \
     findutils \
     geoip \
@@ -242,7 +254,8 @@ RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
 
 COPY rootfs /
 COPY --from=compile /dist /
-COPY --from=download /dist/mmdb /var/mmdb
+COPY --from=geoip2 /dist/mmdb /var/mmdb
+COPY --from=geoip2 /opt/geoipupdate/bin/geoipupdate /usr/local/bin/
 COPY --from=download --chown=nobody:nogroup /dist/rutorrent /var/www/rutorrent
 COPY --from=download --chown=nobody:nogroup /dist/rutorrent-geoip2 /var/www/rutorrent/plugins/geoip2
 COPY --from=download --chown=nobody:nogroup /dist/rutorrent-filemanager /var/www/rutorrent/plugins/filemanager
