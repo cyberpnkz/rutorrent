@@ -19,7 +19,7 @@ ___
 * Multi-platform image
 * [NGINX](https://nginx.org/download) with [PHP 8.3](https://www.php.net/releases/8.3/en.php)
 * [libTorrent](https://github.com/rakshasa/libtorrent) (`0.14.0`) / [rTorrent](https://github.com/rakshasa/rtorrent) (`0.10.0`) compiled from source
-* [ruTorrent](https://github.com/Novik/ruTorrent) release (`v5.1-beta5`)
+* [ruTorrent](https://github.com/Novik/ruTorrent) release (`v5.1.5`)
 * [c-ares](https://github.com/rakshasa/rtorrent/wiki/Performance-Tuning#rtrorrent-with-c-ares) for asynchronous DNS requests
 * [mktorrent](https://github.com/Rudde/mktorrent) installed for ruTorrent create plugin
 * [Radarr](https://radarr.video) / [Sonarr](https://sonarr.tv) hardlinks compliance
